@@ -1,0 +1,74 @@
+# Dependencias 
+node_modules/
+client/node_modules/
+api/node_modules/
+packages/*/node_modules/
+e2e/node_modules/
+
+# Directorios de compilación y empaquetado
+client/dist/
+api/dist/
+packages/*/dist/
+docs/build/
+.turbo/
+build/
+dist/
+
+# Bases de datos locales, cachés y volúmenes de Docker
+data-node/
+meili_data/
+typesense-data/
+postgres-data/
+redis-data/
+pgdata/
+.cache/
+.npm/
+
+# Logs y volcados de errores
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Reportes de Tests End-to-End (E2E) y Cobertura
+e2e/playwright-report/
+e2e/test-results/
+coverage/
+client/coverage/
+api/coverage/
+__snapshots__/
+
+# Archivos minificados, Source Maps y de tipado
+*.min.js
+*.js.map
+*.css.map
+
+# Multimedia  
+client/public/assets/
+client/public/images/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.webp
+*.mp3
+*.mp4
+
+# Archivos de Configuración
+.env
+.env.development
+.env.production
+.env.local
+docker-compose.override.yml
+librechat.yaml
+# Permitimos que lea .env.example para que entienda la configuración
+!.env.example 
+
+# Configuraciones de entorno de desarrollo y Git
+.git/
+.devcontainer/
+.husky/
+.vscode/

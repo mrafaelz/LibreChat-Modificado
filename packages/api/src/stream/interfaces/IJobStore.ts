@@ -294,6 +294,10 @@ export interface SerializableJobData {
   iconURL?: string;
   model?: string;
   promptTokens?: number;
+  quotaReservation?: {
+    amount: number;
+    endpointTokenConfig?: Record<string, Record<string, number>>;
+  };
 
   /**
    * Agent that initiated the run. Persisted so a HITL resume can verify it rebuilds
@@ -458,6 +462,7 @@ export type JobMetadataPatch = Partial<
     | 'scheduleOutcomeError'
     | 'preserveForScheduleReconcile'
     | 'promptTokens'
+    | 'quotaReservation'
     | 'discoveredTools'
     | 'activityPhaseSnapshot'
     | 'compactionSemanticIndex'

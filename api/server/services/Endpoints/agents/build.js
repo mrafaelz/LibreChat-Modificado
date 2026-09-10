@@ -5,6 +5,8 @@ const { getMCPServerTools } = require('~/server/services/Config');
 const { getAccessibleMCPServers } = require('~/server/services/MCP');
 const db = require('~/models');
 
+const userSelectableThinkingLevels = new Set(['low', 'medium', 'high']);
+
 const loadAgent = (params) =>
   loadAgentFn(params, {
     getAgent: db.getAgent,
@@ -13,7 +15,10 @@ const loadAgent = (params) =>
   });
 
 const buildOptions = (req, endpoint, parsedBody, endpointType) => {
-  const { spec, iconURL, agent_id, chatProjectId, ...model_parameters } = parsedBody;
+  const { spec, iconURL, agent_id, chatProjectId, thinkingLevel, ...model_parameters } = parsedBody;
+  if (userSelectableThinkingLevels.has(thinkingLevel)) {
+    model_parameters.thinkingLevel = thinkingLevel;
+  }
   const agentPromise = loadAgent({
     req,
     spec,

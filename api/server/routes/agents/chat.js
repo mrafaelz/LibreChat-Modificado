@@ -23,6 +23,8 @@ const AgentController = require('~/server/controllers/agents/request');
 const ResumeController = require('~/server/controllers/agents/resume');
 const addTitle = require('~/server/services/Endpoints/agents/title');
 const { getFiles, getRoleByName } = require('~/models');
+const db = require('~/models');
+const { reserveQuota, releaseQuota, estimateReservationUnits } = require('~/server/services/Quota');
 
 const router = express.Router();
 
@@ -83,6 +85,53 @@ router.use(checkAgentResourceAccess);
 router.use(validateConvoAccess);
 router.use(guardSubagentThreadTurn);
 router.use(buildEndpointOption);
+router.use(async (req, res, next) => {
+  try {
+    const agent = await req.body?.endpointOption?.agent;
+    const model = agent?.model ?? agent?.model_parameters?.model;
+    const amount = estimateReservationUnits({
+      model,
+      endpointTokenConfig: req.body?.endpointOption?.endpointTokenConfig,
+      db,
+    });
+    const reservation = await reserveQuota({
+      userId: req.user.id,
+      role: req.user.role,
+      config: req.config?.usageQuota,
+      db,
+      amount,
+    });
+    if (reservation === false) {
+      return res
+        .status(429)
+        .json({ code: 'USAGE_LIMIT_REACHED', error: 'Weekly usage limit reached.' });
+    }
+    req.quotaReservation = reservation;
+    const releaseUnsettledReservation = () => {
+      if (!req.quotaReservation) return;
+      void releaseQuota({
+        userId: req.user.id,
+        role: req.user.role,
+        config: req.config?.usageQuota,
+        db,
+        reservation: req.quotaReservation,
+      });
+      req.quotaReservation = null;
+    };
+    res.once('finish', () => {
+      if (res.statusCode >= 400) releaseUnsettledReservation();
+    });
+    /** The initial POST response closes normally while the agent generation
+     * continues on its resumable stream. `res.close` therefore cannot mean a
+     * failed generation: releasing here races the later settlement. A request
+     * `aborted` event, unlike a normal response close, means the client ended
+     * the request before it was handed off. */
+    req.once('aborted', releaseUnsettledReservation);
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+});
 
 const controller = async (req, res, next) => {
   await AgentController(req, res, next, initializeClient, addTitle);

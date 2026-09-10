@@ -6,6 +6,7 @@ import {
   dataService,
   EModelEndpoint,
   isAssistantsEndpoint,
+  ThinkingLevel,
 } from 'librechat-data-provider';
 import type { TConversation, TPreset, Agent } from 'librechat-data-provider';
 import useGetConversation from '~/hooks/Conversations/useGetConversation';
@@ -62,6 +63,7 @@ export default function useSelectAgent() {
       const template: Partial<TPreset | TConversation> = {
         endpoint: EModelEndpoint.agents,
         agent_id: agent.id,
+        thinkingLevel: ThinkingLevel.medium,
         conversationId: Constants.NEW_CONVO as string,
       };
 

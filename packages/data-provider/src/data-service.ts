@@ -232,6 +232,10 @@ export function getUserBalance(): Promise<t.TBalanceResponse> {
   return request.get(endpoints.balance());
 }
 
+export function getUsageQuota(): Promise<t.TUsageQuotaResponse> {
+  return request.get(endpoints.usageQuota());
+}
+
 export const updateTokenCount = (text: string) => {
   return request.post(endpoints.tokenizer(), { arg: text });
 };

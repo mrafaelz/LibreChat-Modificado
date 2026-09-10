@@ -916,6 +916,16 @@ export type TBalanceResponse = {
   refillAmount?: number;
 };
 
+/** Safe product-quota view. Deliberately omits tokens, prices and internal units. */
+export type TUsageQuotaResponse = {
+  plan: string;
+  limit: number;
+  used: number;
+  reserved: number;
+  percent: number;
+  resetsAt: string;
+};
+
 /* -------------------------------------------------------------------------- */
 /* Skill UI extensions (not yet persisted — phase 2 backend will fill these)  */
 /* -------------------------------------------------------------------------- */

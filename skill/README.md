@@ -13,3 +13,11 @@ skill/
 
 These skills are loaded at server startup, exposed read-only to all users with Skills enabled, and
 are not persisted as Skill documents in MongoDB.
+
+## AREX
+
+- `arex-fundamentos`: diagnóstico, evidencia y trazabilidad comunes.
+- `arex-seleccion-mercados`: priorización de mercados destino.
+- `arex-acceso-comercial`: estrategia de canal y cualificación de socios.
+- `arex-precios-exportacion`: landed cost, benchmark y precio objetivo.
+- `arex-compliance-riesgos`: requisitos de acceso, logística y mitigación de riesgos.

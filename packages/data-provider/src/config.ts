@@ -1909,6 +1909,7 @@ export const interfaceSchema = z
 export type TInterfaceConfig = z.infer<typeof interfaceSchema>;
 export type TBalanceConfig = z.infer<typeof balanceSchema>;
 export type TTransactionsConfig = z.infer<typeof transactionsSchema>;
+export type TUsageQuotaConfig = z.infer<typeof usageQuotaSchema>;
 
 export const turnstileOptionsSchema = z
   .object({
@@ -1953,6 +1954,7 @@ export type TStartupConfig = {
   interface?: TInterfaceConfig;
   turnstile?: TTurnstileConfig;
   balance?: TBalanceConfig;
+  usageQuota?: TUsageQuotaConfig;
   transactions?: TTransactionsConfig;
   discordLoginEnabled: boolean;
   facebookLoginEnabled: boolean;
@@ -2246,6 +2248,14 @@ export const balanceSchema = z.object({
   refillAmount: z.number().optional().default(10000),
 });
 
+export const usageQuotaSchema = z.object({
+  enabled: z.boolean().optional().default(false),
+  defaultPlan: z.string().min(1).optional().default('free'),
+  plans: z
+    .record(z.object({ weeklyCredits: z.number().positive() }))
+    .default({ free: { weeklyCredits: 10000000 }, pro: { weeklyCredits: 50000000 } }),
+});
+
 export const transactionsSchema = z.object({
   enabled: z.boolean().optional().default(true),
 });
@@ -2495,6 +2505,7 @@ export const configSchema = z.object({
     })
     .default({ socialLogins: defaultSocialLogins }),
   balance: balanceSchema.optional(),
+  usageQuota: usageQuotaSchema.optional(),
   transactions: transactionsSchema.optional(),
   speech: z
     .object({

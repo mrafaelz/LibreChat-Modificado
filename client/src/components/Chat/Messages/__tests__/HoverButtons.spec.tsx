@@ -216,7 +216,7 @@ describe('HoverButtons edit affordance', () => {
   });
 });
 
-describe('HoverButtons feedback affordance', () => {
+describe('HoverButtons hidden response actions', () => {
   const assistantMessage = {
     ...userMessage,
     messageId: 'assistant-1',
@@ -233,16 +233,14 @@ describe('HoverButtons feedback affordance', () => {
       handleFeedback,
     });
 
-  it('offers feedback on a settled response when a handler is supplied', () => {
+  it('does not expose feedback on a settled response even when a handler is supplied', () => {
     renderSettledResponse(jest.fn());
 
-    expect(screen.getByTitle('Love this')).toBeInTheDocument();
-    expect(screen.getByTitle('Needs improvement')).toBeInTheDocument();
+    expect(screen.queryByTitle('Love this')).toBeNull();
+    expect(screen.queryByTitle('Needs improvement')).toBeNull();
   });
 
-  /** `useMessageActions` withholds the handler when `interface.feedback` is false, so
-   *  this is how a deployment that disabled feedback reaches the action row. */
-  it('hides feedback when no handler is supplied', () => {
+  it('keeps copying available when feedback is hidden', () => {
     renderSettledResponse();
 
     expect(screen.queryByTitle('Love this')).toBeNull();

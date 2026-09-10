@@ -1495,6 +1495,12 @@ const ResumableAgentController = async (req, res, next, initializeClient, addTit
             }
           : {}),
         responseMessageId: preallocatedResponseMessageId,
+        ...(req.quotaReservation != null && {
+          quotaReservation: {
+            amount: req.quotaReservation.amount,
+            endpointTokenConfig: endpointOption.endpointTokenConfig,
+          },
+        }),
         mcpRequestBody,
         userMessage: preliminaryUserMessage,
       },

@@ -28,6 +28,8 @@ const mockSaveMessage = jest.fn();
 const mockRecordScheduleOutcome = jest.fn();
 const mockBeginScheduledStop = jest.fn();
 const mockAcknowledgeScheduledStopPersistence = jest.fn();
+const mockSettleQuota = jest.fn();
+const mockReleaseQuota = jest.fn();
 
 jest.mock('@librechat/data-schemas', () => ({
   ...jest.requireActual('@librechat/data-schemas'),
@@ -56,6 +58,11 @@ jest.mock('~/server/services/Schedules', () => ({
     mockAcknowledgeScheduledStopPersistence(...args),
 }));
 
+jest.mock('~/server/services/Quota', () => ({
+  settleQuota: (...args) => mockSettleQuota(...args),
+  releaseQuota: (...args) => mockReleaseQuota(...args),
+}));
+
 jest.mock('~/server/middleware', () => ({
   uaParser: (req, res, next) => next(),
   checkBan: (req, res, next) => next(),
@@ -66,7 +73,10 @@ jest.mock('~/server/middleware', () => ({
   moderateText: (req, res, next) => next(),
   agentEventUserLimiter: (req, res, next) => next(),
   messageIpLimiter: (req, res, next) => next(),
-  configMiddleware: (req, res, next) => next(),
+  configMiddleware: (req, res, next) => {
+    req.config = { usageQuota: { enabled: true } };
+    next();
+  },
   messageUserLimiter: (req, res, next) => next(),
 }));
 
@@ -104,6 +114,10 @@ describe('Agent Abort Endpoint', () => {
     mockBeginScheduledStop.mockResolvedValue(true);
     mockAcknowledgeScheduledStopPersistence.mockReset();
     mockAcknowledgeScheduledStopPersistence.mockResolvedValue(undefined);
+    mockSettleQuota.mockReset();
+    mockReleaseQuota.mockReset();
+    mockSettleQuota.mockResolvedValue(undefined);
+    mockReleaseQuota.mockResolvedValue(undefined);
   });
 
   describe('POST /chat/abort', () => {
@@ -156,6 +170,66 @@ describe('Agent Abort Endpoint', () => {
           jobStreamId,
           expect.objectContaining({ transformAbortContent: expect.any(Function) }),
         );
+      });
+
+      it('releases a quota hold when stopped before any usage is collected', async () => {
+        const jobStreamId = 'test-stream-123';
+        const reservation = { amount: 10240 };
+
+        mockGenerationJobManager.getJob.mockResolvedValue({
+          metadata: { userId: 'test-user-123' },
+        });
+        mockGenerationJobManager.abortJob.mockResolvedValue({
+          success: true,
+          jobData: { quotaReservation: reservation },
+          collectedUsage: [],
+          content: [],
+          text: '',
+        });
+
+        const response = await request(app)
+          .post('/api/agents/chat/abort')
+          .send({ conversationId: jobStreamId });
+
+        expect(response.status).toBe(200);
+        expect(mockReleaseQuota).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userId: 'test-user-123',
+            reservation,
+          }),
+        );
+        expect(mockSettleQuota).not.toHaveBeenCalled();
+      });
+
+      it('settles a quota hold from partial usage when stopped after generation begins', async () => {
+        const jobStreamId = 'test-stream-123';
+        const reservation = { amount: 10240 };
+        const collectedUsage = [{ model: 'gemini-3.5-flash-lite', output_tokens: 100 }];
+
+        mockGenerationJobManager.getJob.mockResolvedValue({
+          metadata: { userId: 'test-user-123' },
+        });
+        mockGenerationJobManager.abortJob.mockResolvedValue({
+          success: true,
+          jobData: { quotaReservation: reservation },
+          collectedUsage,
+          content: [],
+          text: '',
+        });
+
+        const response = await request(app)
+          .post('/api/agents/chat/abort')
+          .send({ conversationId: jobStreamId });
+
+        expect(response.status).toBe(200);
+        expect(mockSettleQuota).toHaveBeenCalledWith(
+          expect.objectContaining({
+            userId: 'test-user-123',
+            reservation,
+            usages: collectedUsage,
+          }),
+        );
+        expect(mockReleaseQuota).not.toHaveBeenCalled();
       });
 
       it('should fail closed when job has no userId metadata', async () => {

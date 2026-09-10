@@ -17,6 +17,8 @@ const mockBulkInsertTransactions = jest.fn().mockResolvedValue(undefined);
 const mockRecordCollectedUsage = jest
   .fn()
   .mockResolvedValue({ input_tokens: 100, output_tokens: 50 });
+const mockSettleQuota = jest.fn().mockResolvedValue();
+const mockReleaseQuota = jest.fn().mockResolvedValue();
 
 jest.mock('~/models', () => ({
   spendTokens: (...args) => mockSpendTokens(...args),
@@ -54,6 +56,11 @@ jest.mock('@librechat/api', () => {
     recordCollectedUsage: (...args) => mockRecordCollectedUsage(...args),
   };
 });
+
+jest.mock('~/server/services/Quota', () => ({
+  settleQuota: (...args) => mockSettleQuota(...args),
+  releaseQuota: (...args) => mockReleaseQuota(...args),
+}));
 
 const AgentClient = require('./client');
 
@@ -133,6 +140,26 @@ describe('AgentClient - recordCollectedUsage', () => {
       });
 
       expect(client.usage).toBeUndefined();
+    });
+
+    it('settles the reservation when a provider omits usage metadata', async () => {
+      mockRecordCollectedUsage.mockResolvedValue(undefined);
+      mockOptions.req.quotaReservation = { amount: 25 };
+      mockOptions.req.config = { usageQuota: { enabled: true } };
+
+      await client.recordCollectedUsage({
+        collectedUsage: [],
+        balance: { enabled: true },
+        transactions: { enabled: true },
+      });
+
+      expect(mockSettleQuota).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reservation: { amount: 25 },
+          usages: [],
+        }),
+      );
+      expect(mockOptions.req.quotaReservation).toBeNull();
     });
 
     it('should not set this.usage if collectedUsage is null (returns undefined)', async () => {

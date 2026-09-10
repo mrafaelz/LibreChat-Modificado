@@ -1,14 +1,13 @@
 import { useState, useId } from 'react';
 import * as Ariakit from '@ariakit/react';
+import { Ellipsis, PlusCircle } from 'lucide-react';
 import { PermissionTypes, Permissions } from 'librechat-data-provider';
 import { DropdownPopup, TooltipAnchor, Button } from '@librechat/client';
 import { BookmarkFilledIcon, BookmarkIcon } from '@radix-ui/react-icons';
-import { Ellipsis, PlusCircle, MessageCircleDashed, Check } from 'lucide-react';
 import type { TStartupConfig } from 'librechat-data-provider';
 import type * as t from '~/common';
 import { BookmarkContext } from '~/Providers/BookmarkContext';
 import useBookmarkItems from '~/hooks/Chat/useBookmarkItems';
-import useTemporaryChat from '~/hooks/Chat/useTemporaryChat';
 import useExportShare from '~/hooks/Chat/useExportShare';
 import useMultiConvo from '~/hooks/Chat/useMultiConvo';
 import { useHasAccess, useLocalize } from '~/hooks';
@@ -16,7 +15,7 @@ import { cn } from '~/utils';
 
 /**
  * Mobile overflow menu. Collapses the header's secondary actions behind a
- * single control so the bar holds four targets instead of seven. Each action's
+ * single control so the bar holds fewer targets. Each action's
  * behaviour and visibility rule comes from the hook that also drives its
  * desktop button, so the two surfaces cannot drift apart.
  */
@@ -39,13 +38,7 @@ export default function HeaderMenu({
     permissionType: PermissionTypes.MULTI_CONVO,
     permission: Permissions.USE,
   });
-  const hasAccessToTemporaryChat = useHasAccess({
-    permissionType: PermissionTypes.TEMPORARY_CHAT,
-    permission: Permissions.USE,
-  });
-
   const multiConvo = useMultiConvo();
-  const temporary = useTemporaryChat();
   const bookmarks = useBookmarkItems({ enabled: hasAccessToBookmarks === true });
   const exportShare = useExportShare({
     isSharedButtonEnabled: startupConfig?.sharedLinksEnabled ?? false,
@@ -53,7 +46,6 @@ export default function HeaderMenu({
 
   const showBookmarks = hasAccessToBookmarks === true && bookmarks.show;
   const showCompare = hasAccessToMultiConvo === true && multiConvo.show;
-  const showTemporary = hasAccessToTemporaryChat === true && temporary.show;
 
   const items: t.MenuItemProps[] = [];
 
@@ -89,21 +81,6 @@ export default function HeaderMenu({
 
   if (exportShare.show) {
     pushGroup(...exportShare.items);
-  }
-
-  if (showTemporary) {
-    pushGroup({
-      id: 'header-temporary',
-      label: localize('com_ui_temporary'),
-      ariaChecked: temporary.isTemporary,
-      className: temporary.isTemporary ? 'bg-surface-active' : undefined,
-      icon: temporary.isTemporary ? (
-        <Check className="size-4 text-text-primary" />
-      ) : (
-        <MessageCircleDashed className="size-4 text-text-secondary" />
-      ),
-      onClick: temporary.toggle,
-    });
   }
 
   if (items.length === 0) {

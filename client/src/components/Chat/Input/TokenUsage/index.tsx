@@ -3,12 +3,84 @@ import * as Ariakit from '@ariakit/react';
 import { Constants } from 'librechat-data-provider';
 import type { TConversation } from 'librechat-data-provider';
 import type { CurrencyConfig } from '~/utils';
-import { useGetLangfuseSessionLinkQuery, useGetStartupConfig } from '~/data-provider';
+import {
+  useGetLangfuseSessionLinkQuery,
+  useGetStartupConfig,
+  useGetUsageQuota,
+} from '~/data-provider';
 import useTokenUsage from '~/hooks/Chat/useTokenUsage';
 import { formatTokens, cn } from '~/utils';
 import { useLocalize } from '~/hooks';
 import Breakdown from './Breakdown';
 import Gauge from './Gauge';
+
+function QuotaUsageIndicator({ isSubmitting }: Pick<TokenUsageProps, 'isSubmitting'>) {
+  const localize = useLocalize();
+  const { data: quota, refetch } = useGetUsageQuota({ refetchOnWindowFocus: true });
+  const popover = Ariakit.usePopoverStore({ placement: 'top' });
+  const wasSubmitting = useRef(isSubmitting);
+
+  useEffect(() => {
+    if (wasSubmitting.current && !isSubmitting) {
+      /** The server settles after the final provider usage event. Delay the
+       * refetch one tick so the bar receives that authoritative total instead
+       * of the just-before-settlement snapshot. */
+      const timer = setTimeout(() => void refetch(), 250);
+      wasSubmitting.current = isSubmitting;
+      return () => clearTimeout(timer);
+    }
+    wasSubmitting.current = isSubmitting;
+  }, [isSubmitting, refetch]);
+
+  if (quota == null) return null;
+  return (
+    <>
+      <Ariakit.PopoverDisclosure
+        store={popover}
+        type="button"
+        aria-label={localize('com_ui_usage_quota_label', { 0: String(quota.percent) })}
+        className="flex size-theme-control items-center justify-center rounded-theme-control-round transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary"
+      >
+        <span role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={quota.percent}>
+          <Gauge percent={quota.percent} indeterminate={false} />
+        </span>
+      </Ariakit.PopoverDisclosure>
+      <Ariakit.Popover
+        store={popover}
+        gutter={8}
+        portal
+        className="z-[200] w-64 rounded-xl border border-border-medium bg-surface-secondary p-3 shadow-lg focus:outline-none"
+      >
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-text-secondary">{localize('com_ui_usage_this_week')}</span>
+            <span className="font-medium text-text-primary">{quota.percent}%</span>
+          </div>
+          <div
+            className="h-2 overflow-hidden rounded-full bg-surface-hover"
+            role="progressbar"
+            aria-valuenow={quota.percent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div
+              className="h-full rounded-full bg-text-primary transition-all duration-300"
+              style={{ width: `${quota.percent}%` }}
+            />
+          </div>
+          <p className="text-xs text-text-secondary">
+            {localize('com_ui_usage_resets_at', {
+              0: new Intl.DateTimeFormat(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              }).format(new Date(quota.resetsAt)),
+            })}
+          </p>
+        </div>
+      </Ariakit.Popover>
+    </>
+  );
+}
 
 interface TokenUsageProps {
   index: number;
@@ -234,6 +306,9 @@ function TokenUsageIndicator({
 /** Config gate kept outside the indicator so disabled deployments mount nothing */
 const TokenUsage = memo(function TokenUsage(props: TokenUsageProps) {
   const { data: startupConfig } = useGetStartupConfig();
+  if (startupConfig?.usageQuota?.enabled === true) {
+    return <QuotaUsageIndicator isSubmitting={props.isSubmitting} />;
+  }
   /** Wait for config before mounting: until it loads `contextUsage === false`
    *  reads as undefined, so a disabled deployment would briefly mount the
    *  indicator and fire the token-config query on first load */
