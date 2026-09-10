@@ -1,6 +1,7 @@
 import { useState, memo, useRef } from 'react';
 import { useSetRecoilState } from 'recoil';
 import * as Menu from '@ariakit/react/menu';
+import { SystemRoles } from 'librechat-data-provider';
 import { GearIcon, DropdownMenuSeparator, Avatar } from '@librechat/client';
 import {
   Archive,
@@ -101,6 +102,12 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
   const setShowShortcutsDialog = useSetRecoilState(store.showShortcutsDialog);
   const [showArchived, setShowArchived] = useState(false);
   const accountSettingsButtonRef = useRef<HTMLButtonElement>(null);
+  let accountType = localize('com_ui_account_type_free');
+  if (user?.role === SystemRoles.ADMIN) {
+    accountType = localize('com_ui_account_type_admin');
+  } else if (user?.role?.toUpperCase() === 'PRO') {
+    accountType = localize('com_ui_account_type_pro');
+  }
 
   return (
     <Menu.MenuProvider placement={collapsed ? 'right-end' : undefined}>
@@ -138,8 +145,12 @@ function AccountSettings({ collapsed = false }: { collapsed?: boolean }) {
           translate: collapsed ? '4px 0' : '0 -4px',
         }}
       >
-        <div className="text-token-text-secondary ml-3 mr-2 py-2 text-sm" role="note">
-          {user?.email ?? localize('com_nav_user')}
+        <div
+          className="text-token-text-secondary ml-3 mr-2 flex items-center justify-between gap-2 py-2 text-sm"
+          role="note"
+        >
+          <span className="truncate">{user?.email ?? localize('com_nav_user')}</span>
+          <span className="shrink-0 font-medium text-text-primary">{accountType}</span>
         </div>
         <DropdownMenuSeparator />
         {startupConfig?.balance?.enabled === true && balanceQuery.data != null && (

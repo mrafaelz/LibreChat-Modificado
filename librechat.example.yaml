@@ -315,6 +315,15 @@ registration:
 # Note: If balance.enabled is true, transactions will always be enabled
 # regardless of this setting to ensure balance tracking works correctly
 
+# Weekly product quota. Only progress and the reset date are exposed to users.
+# usageQuota:
+#   enabled: true
+#   defaultPlan: free
+#   plans:
+#     free: { weeklyUnits: 100 }
+#     pro: { weeklyUnits: 1000 }
+# Roles map to plans automatically: USER uses free, PRO uses pro, and ADMIN receives ten times pro.
+
 # Speech (STT/TTS) outbound requests to operator-provided target URLs are SSRF-guarded
 # at connect time: private, loopback, link-local, and cloud-metadata targets are blocked
 # by default. To point STT/TTS at a private or self-hosted service (LocalAI, a self-hosted

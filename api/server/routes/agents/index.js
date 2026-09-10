@@ -47,7 +47,9 @@ const {
   getServerGenerationProtocol,
   negotiateExistingGenerationProtocol,
 } = require('~/server/controllers/agents/protocol');
-const { getFiles, saveMessage } = require('~/models');
+const db = require('~/models');
+const { getFiles, saveMessage } = db;
+const { settleQuota, releaseQuota } = require('~/server/services/Quota');
 const {
   recordScheduleOutcome,
   beginScheduledStop,
@@ -928,6 +930,34 @@ router.post('/chat/abort', configMiddleware, async (req, res, next) => {
         abortResultUserMessageId: abortResult.jobData?.userMessage?.messageId,
         abortResultResponseMessageId: abortResult.jobData?.responseMessageId,
       });
+
+      const reservation = abortResult.jobData?.quotaReservation;
+      if (reservation) {
+        const usages = abortResult.collectedUsage ?? [];
+        if (usages.length > 0) {
+          await settleQuota({
+            userId,
+            role: req.user.role,
+            config: req.config?.usageQuota,
+            db,
+            reservation,
+            usages,
+            pricing: {
+              getMultiplier: db.getMultiplier,
+              getCacheMultiplier: db.getCacheMultiplier,
+            },
+            endpointTokenConfig: reservation.endpointTokenConfig,
+          });
+        } else {
+          await releaseQuota({
+            userId,
+            role: req.user.role,
+            config: req.config?.usageQuota,
+            db,
+            reservation,
+          });
+        }
+      }
 
       // `beforePublish` has run: its partial-message and checkpoint writes have either
       // landed or failed. Acknowledge the Stop ONLY on success — that releases the owner's

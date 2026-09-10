@@ -96,6 +96,8 @@ export interface AppConfig {
   balance?: Partial<TCustomConfig['balance']>;
   /** Transactions configuration */
   transactions?: TCustomConfig['transactions'];
+  /** Weekly, cost-weighted usage quota configuration */
+  usageQuota?: TCustomConfig['usageQuota'];
   /** Speech configuration */
   speech?: TCustomConfig['speech'];
   /** MCP server configuration */

@@ -1,6 +1,6 @@
 import { useRecoilValue } from 'recoil';
-import { QueryKeys, dataService } from 'librechat-data-provider';
 import { useQuery } from '@tanstack/react-query';
+import { QueryKeys, dataService } from 'librechat-data-provider';
 import type { QueryObserverResult, UseQueryOptions } from '@tanstack/react-query';
 import type t from 'librechat-data-provider';
 import store from '~/store';
@@ -29,6 +29,17 @@ export const useGetUserBalance = (
     ...config,
     enabled: (config?.enabled ?? true) === true && queriesEnabled,
   });
+};
+
+export const useGetUsageQuota = (config?: UseQueryOptions<t.TUsageQuotaResponse>) => {
+  return useQuery<t.TUsageQuotaResponse>(
+    [QueryKeys.usageQuota],
+    () => dataService.getUsageQuota(),
+    {
+      refetchInterval: 30_000,
+      ...config,
+    },
+  );
 };
 
 export const useGetSearchEnabledQuery = (

@@ -84,6 +84,20 @@ export function createTransactionMethods(
   bulkInsertTransactions: (docs: TransactionData[]) => Promise<void>;
   findBalanceByUser: (user: string) => Promise<IBalance | null>;
   upsertBalanceFields: (user: string, fields: IBalanceUpdate) => Promise<IBalance | null>;
+  reserveQuota: (params: {
+    user: string;
+    amount: number;
+    limit: number;
+    periodStart: Date;
+    periodEnd: Date;
+    plan: string;
+  }) => Promise<IBalance | null>;
+  settleQuota: (params: {
+    user: string;
+    reserved: number;
+    actual: number;
+  }) => Promise<IBalance | null>;
+  releaseQuota: (params: { user: string; reserved: number }) => Promise<IBalance | null>;
   getTransactions: (filter: FilterQuery<ITransaction>) => Promise<ITransaction[]>;
   deleteTransactions: (
     filter: FilterQuery<ITransaction>,
@@ -443,6 +457,105 @@ export function createTransactionMethods(
     ).lean<IBalance>();
   }
 
+  /** Atomically reserve product-quota units. A new UTC week replaces stale
+   * counters before the conditional reservation, preventing cross-week leaks. */
+  async function reserveQuota({
+    user,
+    amount,
+    limit,
+    periodStart,
+    periodEnd,
+    plan,
+  }: {
+    user: string;
+    amount: number;
+    limit: number;
+    periodStart: Date;
+    periodEnd: Date;
+    plan: string;
+  }): Promise<IBalance | null> {
+    const Balance = mongoose.models.Balance as Model<IBalance>;
+    await Balance.findOneAndUpdate(
+      { user },
+      {
+        $setOnInsert: {
+          user,
+          quotaPlan: plan,
+          quotaCurrency: 'credits',
+          quotaLimit: limit,
+          tokenCredits: limit,
+          quotaReserved: 0,
+          quotaPeriodStart: periodStart,
+          quotaPeriodEnd: periodEnd,
+        },
+      },
+      { upsert: true },
+    );
+    await Balance.updateOne(
+      {
+        user,
+        $or: [{ quotaPeriodEnd: { $exists: false } }, { quotaPeriodEnd: { $ne: periodEnd } }],
+      },
+      {
+        $set: {
+          quotaPlan: plan,
+          quotaCurrency: 'credits',
+          quotaLimit: limit,
+          tokenCredits: limit,
+          quotaReserved: 0,
+          quotaPeriodStart: periodStart,
+          quotaPeriodEnd: periodEnd,
+        },
+      },
+    );
+    return Balance.findOneAndUpdate(
+      {
+        user,
+        quotaPeriodEnd: periodEnd,
+        $expr: { $gte: [{ $ifNull: ['$tokenCredits', 0] }, amount] },
+      },
+      { $inc: { tokenCredits: -amount, quotaReserved: amount } },
+      { new: true },
+    ).lean<IBalance>();
+  }
+
+  async function settleQuota({
+    user,
+    reserved,
+    actual,
+  }: {
+    user: string;
+    reserved: number;
+    actual: number;
+  }): Promise<IBalance | null> {
+    const Balance = mongoose.models.Balance as Model<IBalance>;
+    return Balance.findOneAndUpdate(
+      { user },
+      {
+        $inc: {
+          tokenCredits: Math.max(0, reserved) - Math.max(0, actual),
+          quotaReserved: -Math.max(0, reserved),
+        },
+      },
+      { new: true },
+    ).lean<IBalance>();
+  }
+
+  async function releaseQuota({
+    user,
+    reserved,
+  }: {
+    user: string;
+    reserved: number;
+  }): Promise<IBalance | null> {
+    const Balance = mongoose.models.Balance as Model<IBalance>;
+    return Balance.findOneAndUpdate(
+      { user },
+      { $inc: { tokenCredits: Math.max(0, reserved), quotaReserved: -Math.max(0, reserved) } },
+      { new: true },
+    ).lean<IBalance>();
+  }
+
   /** Deletes transactions matching a filter. */
   async function deleteTransactions(
     filter: FilterQuery<ITransaction>,
@@ -477,6 +590,9 @@ export function createTransactionMethods(
     bulkInsertTransactions,
     findBalanceByUser,
     upsertBalanceFields,
+    reserveQuota,
+    settleQuota,
+    releaseQuota,
     getTransactions,
     deleteTransactions,
     deleteBalances,

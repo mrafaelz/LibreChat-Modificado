@@ -59,6 +59,7 @@ type TGenericError = {
 };
 
 const errorMessages = {
+  USAGE_LIMIT_REACHED: 'com_error_usage_limit_reached',
   [ErrorTypes.MODERATION]: 'com_error_moderation',
   [ErrorTypes.NO_USER_KEY]: 'com_error_no_user_key',
   [ErrorTypes.INVALID_USER_KEY]: 'com_error_invalid_user_key',

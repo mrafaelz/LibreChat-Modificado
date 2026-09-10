@@ -1,11 +1,9 @@
 import { useMemo } from 'react';
-import { MCPIcon, AttachmentIcon, OpenAIMinimalIcon } from '@librechat/client';
+import { OpenAIMinimalIcon } from '@librechat/client';
 import {
   Bot,
-  Brain,
   Bookmark,
   NotebookPen,
-  ScrollText,
   CalendarClock,
   ArrowRightToLine,
   SlidersHorizontal,
@@ -20,22 +18,13 @@ import {
 } from 'librechat-data-provider';
 import type { TInterfaceConfig, TEndpointsConfig } from 'librechat-data-provider';
 import type { NavLink } from '~/common';
-import {
-  useAgentCapabilities,
-  useMCPServerManager,
-  useGetAgentsConfig,
-  useHasAccess,
-} from '~/hooks';
-import MCPBuilderPanel from '~/components/SidePanel/MCPBuilder/MCPBuilderPanel';
 import AgentPanelSwitch from '~/components/SidePanel/Agents/AgentPanelSwitch';
 import BookmarkPanel from '~/components/SidePanel/Bookmarks/BookmarkPanel';
 import PanelSwitch from '~/components/SidePanel/Builder/PanelSwitch';
 import { SchedulePanel } from '~/components/SidePanel/Schedules';
 import Parameters from '~/components/SidePanel/Parameters/Panel';
-import { MemoryPanel } from '~/components/SidePanel/Memories';
-import FilesPanel from '~/components/SidePanel/Files/Panel';
 import { PromptsAccordion } from '~/components/Prompts';
-import { SkillsAccordion } from '~/components/Skills';
+import { useHasAccess } from '~/hooks';
 
 export default function useSideNavLinks({
   hidePanel,
@@ -58,21 +47,9 @@ export default function useSideNavLinks({
     permissionType: PermissionTypes.PROMPTS,
     permission: Permissions.USE,
   });
-  const hasAccessToSkills = useHasAccess({
-    permissionType: PermissionTypes.SKILLS,
-    permission: Permissions.USE,
-  });
   const hasAccessToBookmarks = useHasAccess({
     permissionType: PermissionTypes.BOOKMARKS,
     permission: Permissions.USE,
-  });
-  const hasAccessToMemories = useHasAccess({
-    permissionType: PermissionTypes.MEMORIES,
-    permission: Permissions.USE,
-  });
-  const hasAccessToReadMemories = useHasAccess({
-    permissionType: PermissionTypes.MEMORIES,
-    permission: Permissions.READ,
   });
   const hasAccessToAgents = useHasAccess({
     permissionType: PermissionTypes.AGENTS,
@@ -82,23 +59,10 @@ export default function useSideNavLinks({
     permissionType: PermissionTypes.AGENTS,
     permission: Permissions.CREATE,
   });
-  const hasAccessToUseMCPSettings = useHasAccess({
-    permissionType: PermissionTypes.MCP_SERVERS,
-    permission: Permissions.USE,
-  });
-  const hasAccessToCreateMCP = useHasAccess({
-    permissionType: PermissionTypes.MCP_SERVERS,
-    permission: Permissions.CREATE,
-  });
   const hasAccessToSchedules = useHasAccess({
     permissionType: PermissionTypes.SCHEDULES,
     permission: Permissions.USE,
   });
-  const { availableMCPServers } = useMCPServerManager();
-
-  const { agentsConfig } = useGetAgentsConfig({ endpointsConfig });
-  const { skillsEnabled } = useAgentCapabilities(agentsConfig?.capabilities);
-
   const Links = useMemo(() => {
     const links: NavLink[] = [];
 
@@ -136,16 +100,6 @@ export default function useSideNavLinks({
       });
     }
 
-    if (hasAccessToSkills && skillsEnabled) {
-      links.push({
-        title: 'com_ui_skills',
-        label: '',
-        icon: ScrollText,
-        id: 'skills',
-        Component: SkillsAccordion,
-      });
-    }
-
     // Scheduled chats are EXPERIMENTAL and default-OFF: the server enables them only
     // when an admin opts in explicitly, so ABSENT config means disabled here too.
     // Mirrors getLimits exactly — absent/null/`false` are all off, `true` is on, and the
@@ -176,16 +130,6 @@ export default function useSideNavLinks({
       });
     }
 
-    if (hasAccessToMemories && hasAccessToReadMemories) {
-      links.push({
-        title: 'com_ui_memories',
-        label: '',
-        icon: Brain,
-        id: 'memories',
-        Component: MemoryPanel,
-      });
-    }
-
     if (hasAccessToBookmarks) {
       links.push({
         title: 'com_sidepanel_conversation_tags',
@@ -195,14 +139,6 @@ export default function useSideNavLinks({
         Component: BookmarkPanel,
       });
     }
-
-    links.push({
-      title: 'com_sidepanel_attach_files',
-      label: '',
-      icon: AttachmentIcon,
-      id: 'files',
-      Component: FilesPanel,
-    });
 
     if (
       interfaceConfig.parameters === true &&
@@ -216,19 +152,6 @@ export default function useSideNavLinks({
         icon: SlidersHorizontal,
         id: 'parameters',
         Component: Parameters,
-      });
-    }
-
-    if (
-      (hasAccessToUseMCPSettings && availableMCPServers && availableMCPServers.length > 0) ||
-      hasAccessToCreateMCP
-    ) {
-      links.push({
-        title: 'com_nav_setting_mcp',
-        label: '',
-        icon: MCPIcon,
-        id: 'mcp-builder',
-        Component: MCPBuilderPanel,
       });
     }
 
@@ -250,18 +173,11 @@ export default function useSideNavLinks({
     hasAccessToAgents,
     hasAccessToCreateAgents,
     hasAccessToPrompts,
-    hasAccessToSkills,
-    skillsEnabled,
-    hasAccessToMemories,
-    hasAccessToReadMemories,
     hasAccessToSchedules,
     interfaceConfig.schedules,
     interfaceConfig.parameters,
     endpointType,
     hasAccessToBookmarks,
-    availableMCPServers,
-    hasAccessToUseMCPSettings,
-    hasAccessToCreateMCP,
     includeHidePanel,
     hidePanel,
   ]);

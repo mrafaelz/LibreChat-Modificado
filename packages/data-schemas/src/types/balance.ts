@@ -10,6 +10,13 @@ export interface IBalance extends Document {
   refillIntervalUnit: RefillIntervalUnit;
   lastRefill: Date;
   refillAmount: number;
+  quotaPlan?: string;
+  quotaCurrency?: string;
+  quotaLimit?: number;
+  quotaUsed?: number;
+  quotaReserved?: number;
+  quotaPeriodStart?: Date;
+  quotaPeriodEnd?: Date;
   tenantId?: string;
 }
 
@@ -22,4 +29,11 @@ export interface IBalanceUpdate {
   refillIntervalUnit?: RefillIntervalUnit;
   refillAmount?: number;
   lastRefill?: Date;
+  quotaPlan?: string;
+  quotaCurrency?: string;
+  quotaLimit?: number;
+  quotaUsed?: number;
+  quotaReserved?: number;
+  quotaPeriodStart?: Date;
+  quotaPeriodEnd?: Date;
 }

@@ -89,6 +89,9 @@ export function sanitizeJobMetadata(metadata: Partial<GenerationJobMetadata>): J
   if (metadata.promptTokens !== undefined) {
     patch.promptTokens = metadata.promptTokens;
   }
+  if (metadata.quotaReservation) {
+    patch.quotaReservation = metadata.quotaReservation;
+  }
   if (metadata.preemptCapable !== undefined) {
     patch.preemptCapable = metadata.preemptCapable;
   }

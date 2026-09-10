@@ -186,6 +186,7 @@ const { getAccessibleMCPServers } = require('~/server/services/MCP');
 const BaseClient = require('~/app/clients/BaseClient');
 const { getMCPManager } = require('~/config');
 const db = require('~/models');
+const { settleQuota, releaseQuota } = require('~/server/services/Quota');
 
 const loadAgent = (params) =>
   loadAgentFn(params, {
@@ -3278,7 +3279,9 @@ class AgentClient extends BaseClient {
         model: model ?? this.model ?? this.options.agent.model_parameters.model,
         context,
         messageId: this.responseMessageId,
-        balance,
+        /** Weekly agent credits own the Balance tokenCredits field. Prevent the
+         * legacy balance ledger from debiting the same generation a second time. */
+        balance: this.options.req?.config?.usageQuota?.enabled ? { enabled: false } : balance,
         transactions,
         endpointTokenConfig: overrideTokenConfig
           ? endpointTokenConfig
@@ -3291,6 +3294,36 @@ class AgentClient extends BaseClient {
 
     if (result && updateStreamUsage) {
       this.usage = result;
+    }
+    if (updateStreamUsage && context === 'message') {
+      const reservation = this.options.req?.quotaReservation;
+      if (!reservation) {
+        return;
+      }
+      /** Claim the hold before awaiting persistence. The HTTP close handler
+       * must not concurrently release it after a successful stream. */
+      this.options.req.quotaReservation = null;
+      try {
+        await settleQuota({
+          userId: this.user ?? this.options.req.user?.id,
+          role: this.options.req.user?.role,
+          config: this.options.req.config?.usageQuota,
+          db,
+          reservation,
+          usages: collectedUsage,
+          pricing: { getMultiplier: db.getMultiplier, getCacheMultiplier: db.getCacheMultiplier },
+          endpointTokenConfig: this.options.endpointTokenConfig,
+        });
+      } catch (error) {
+        logger.error('[AgentClient] Failed to settle usage quota', error);
+        await releaseQuota({
+          userId: this.user ?? this.options.req.user?.id,
+          role: this.options.req.user?.role,
+          config: this.options.req.config?.usageQuota,
+          db,
+          reservation,
+        });
+      }
     }
   }
 

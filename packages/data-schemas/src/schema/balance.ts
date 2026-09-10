@@ -37,6 +37,13 @@ const balanceSchema: Schema<t.IBalance> = new Schema<t.IBalance>({
     type: Number,
     default: 0,
   },
+  quotaPlan: { type: String, index: true },
+  quotaCurrency: { type: String },
+  quotaLimit: { type: Number },
+  quotaUsed: { type: Number, default: 0 },
+  quotaReserved: { type: Number, default: 0 },
+  quotaPeriodStart: Date,
+  quotaPeriodEnd: Date,
   tenantId: {
     type: String,
     index: true,

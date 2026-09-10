@@ -18,6 +18,12 @@ import Feedback from './Feedback';
 import { cn } from '~/utils';
 import store from '~/store';
 
+/**
+ * Response-only controls are intentionally hidden from the chat UI. Keeping this
+ * gate preserves their implementations and makes restoring them a single change.
+ */
+const showAssistantResponseActions = false;
+
 type THoverButtons = {
   isEditing: boolean;
   enterEdit: (cancel?: boolean) => void;
@@ -188,24 +194,27 @@ const HoverButtons = ({
   return (
     <div className="group visible flex justify-center gap-0.5 self-end focus-within:outline-none lg:justify-start">
       {/* Text to Speech */}
-      {TextToSpeech && !error && !isActiveStreamingMessage && (
-        <MessageAudio
-          index={index}
-          isLast={isLast}
-          messageId={message.messageId}
-          content={extractMessageContent(message)}
-          renderButton={(props) => (
-            <HoverButton
-              onClick={props.onClick}
-              title={props.title}
-              icon={props.icon}
-              isActive={props.isActive}
-              isLast={isLast}
-              dataTestId={isLast && !isCreatedByUser ? 'read-aloud-button' : undefined}
-            />
-          )}
-        />
-      )}
+      {(isCreatedByUser || showAssistantResponseActions) &&
+        TextToSpeech &&
+        !error &&
+        !isActiveStreamingMessage && (
+          <MessageAudio
+            index={index}
+            isLast={isLast}
+            messageId={message.messageId}
+            content={extractMessageContent(message)}
+            renderButton={(props) => (
+              <HoverButton
+                onClick={props.onClick}
+                title={props.title}
+                icon={props.icon}
+                isActive={props.isActive}
+                isLast={isLast}
+                dataTestId={isLast && !isCreatedByUser ? 'read-aloud-button' : undefined}
+              />
+            )}
+          />
+        )}
 
       {/* Copy Button */}
       {!isActiveStreamingMessage && (
@@ -228,20 +237,23 @@ const HoverButtons = ({
       )}
 
       {/* Edit Button */}
-      {!isSubagentThreadReadOnly && isEditableEndpoint && !hideEditButton && (
-        <HoverButton
-          id={`edit-${message.messageId}`}
-          onClick={onEdit}
-          title={localize('com_ui_edit')}
-          icon={<EditIcon size="19" />}
-          isActive={isEditing}
-          isLast={isLast}
-          className={isCreatedByUser ? '' : 'active'}
-        />
-      )}
+      {(isCreatedByUser || showAssistantResponseActions) &&
+        !isSubagentThreadReadOnly &&
+        isEditableEndpoint &&
+        !hideEditButton && (
+          <HoverButton
+            id={`edit-${message.messageId}`}
+            onClick={onEdit}
+            title={localize('com_ui_edit')}
+            icon={<EditIcon size="19" />}
+            isActive={isEditing}
+            isLast={isLast}
+            className={isCreatedByUser ? '' : 'active'}
+          />
+        )}
 
       {/* Fork Button */}
-      {!error && !isActiveStreamingMessage && (
+      {(isCreatedByUser || showAssistantResponseActions) && !error && !isActiveStreamingMessage && (
         <Fork
           messageId={message.messageId}
           conversationId={conversation.conversationId}
@@ -252,9 +264,13 @@ const HoverButtons = ({
       )}
 
       {/* Feedback Buttons */}
-      {!error && !isActiveStreamingMessage && !isCreatedByUser && handleFeedback != null && (
-        <Feedback handleFeedback={handleFeedback} feedback={message.feedback} isLast={isLast} />
-      )}
+      {showAssistantResponseActions &&
+        !error &&
+        !isActiveStreamingMessage &&
+        !isCreatedByUser &&
+        handleFeedback != null && (
+          <Feedback handleFeedback={handleFeedback} feedback={message.feedback} isLast={isLast} />
+        )}
 
       {/* Regenerate Button */}
       {!isSubagentThreadReadOnly && regenerateEnabled && (

@@ -8,8 +8,6 @@ import {
   Permissions,
 } from 'librechat-data-provider';
 import { OpenSidebar, PresetsMenu, NewChat, HeaderMenu } from './Menus';
-import { TemporaryChat, TemporaryChatIndicator } from './TemporaryChat';
-import ModelSelector from './Menus/Endpoints/ModelSelector';
 import { useGetStartupConfig } from '~/data-provider';
 import ExportAndShareMenu from './ExportAndShareMenu';
 import SubagentThreadLink from './SubagentThreadLink';
@@ -59,14 +57,8 @@ function Header({
     permission: Permissions.USE,
   });
 
-  const hasAccessToTemporaryChat = useHasAccess({
-    permissionType: PermissionTypes.TEMPORARY_CHAT,
-    permission: Permissions.USE,
-  });
-
   /** The drawer covers the header on mobile; keep its controls out of the tab order. */
   const hiddenBehindNav = navVisible === true && 'max-md:hidden';
-
   return (
     <div className="absolute top-0 z-10 flex h-[52px] w-full items-center gap-2 bg-gradient-to-b from-presentation via-presentation/70 to-transparent p-2 font-semibold text-text-primary md:from-presentation/80 md:via-presentation/50 2xl:from-presentation/0 2xl:via-transparent">
       <div className="flex flex-shrink-0 items-center md:hidden">
@@ -82,7 +74,6 @@ function Header({
         {parentConversationId != null && (
           <SubagentThreadLink threadId={parentConversationId} labelClassName="hidden lg:inline" />
         )}
-        {!readOnly && <ModelSelector startupConfig={startupConfig} />}
         {!readOnly && interfaceConfig.presets === true && interfaceConfig.modelSelect === true && (
           <PresetsMenu />
         )}
@@ -99,12 +90,10 @@ function Header({
       </div>
 
       <div className={cn('flex flex-shrink-0 items-center gap-2', hiddenBehindNav)}>
-        {hasAccessToTemporaryChat === true && <TemporaryChatIndicator />}
         {!isNewChat && <NewChat className="md:hidden" />}
         <HeaderMenu startupConfig={startupConfig} className="md:hidden" />
         <div className="hidden items-center gap-2 md:flex">
           <ExportAndShareMenu isSharedButtonEnabled={startupConfig?.sharedLinksEnabled ?? false} />
-          {hasAccessToTemporaryChat === true && <TemporaryChat />}
         </div>
       </div>
     </div>

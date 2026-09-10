@@ -46,6 +46,12 @@ export interface GenerationJobMetadata {
   model?: string;
   /** Prompt token count for abort token spending */
   promptTokens?: number;
+  /** Preflight weekly-quota hold. Persisted with the job so a Stop request on
+   * another HTTP request can settle or release the exact reservation. */
+  quotaReservation?: {
+    amount: number;
+    endpointTokenConfig?: Record<string, Record<string, number>>;
+  };
   /** Agent that initiated the run; a HITL resume verifies it rebuilds the same agent. */
   agent_id?: string;
   /** Whether the originating turn was a temporary chat; a HITL resume keeps it so. */
